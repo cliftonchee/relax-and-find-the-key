@@ -1,0 +1,50 @@
+name: Build and Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repo
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Google Cloud SDK
+      - name: Set up GCP credentials
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      # Step 3: Authenticate Docker to GCR
+      - name: Configure Docker
+        run: gcloud auth configure-docker
+
+      # Step 4: Build Docker image
+      - name: Build Docker image
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.CLOUD_RUN_SERVICE }}:${GITHUB_SHA}"
+          docker build -t $IMAGE .
+          docker push $IMAGE
+
+      # Step 5: Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        run: |
+          IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.CLOUD_RUN_SERVICE }}:${GITHUB_SHA}"
+          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
+            --image $IMAGE \
+            --region asia-southeast1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=1 \
+            --max-instances=2 \
+            --env-vars=ENV=prod,DEBUG=false \
+            --port=8080
