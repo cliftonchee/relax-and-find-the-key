@@ -38,7 +38,10 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE="gcr.io/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.CLOUD_RUN_SERVICE }}:${GITHUB_SHA}"
-          docker build -t $IMAGE .
+          docker build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
+            -t $IMAGE .
           docker push $IMAGE
 
       # Step 6: Deploy to Cloud Run
