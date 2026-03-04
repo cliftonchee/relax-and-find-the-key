@@ -48,12 +48,15 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           IMAGE="asia-southeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/images/${{ secrets.CLOUD_RUN_SERVICE }}:${GITHUB_SHA}"
-          gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
-            --image $IMAGE \
-            --region asia-southeast1 \
-            --platform managed \
-            --allow-unauthenticated \
-            --min-instances=1 \
-            --max-instances=2 \
-            --env-vars=ENV=prod,DEBUG=false,NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }},NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
-            --port=8080
+                    gcloud run deploy ${{ secrets.CLOUD_RUN_SERVICE }} \
+                      --image $IMAGE \
+                      --region asia-southeast1 \
+                      --platform managed \
+                      --allow-unauthenticated \
+                      --min-instances=1 \
+                      --max-instances=2 \
+                      --set-env-vars="ENV=prod" \
+                      --set-env-vars="DEBUG=false" \
+                      --set-env-vars="NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}" \
+                      --set-env-vars="NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}" \
+                      --port=8080
