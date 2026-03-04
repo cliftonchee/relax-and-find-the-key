@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main
+      - deploy-workflow  # test branch
+  # Optional manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -46,5 +49,5 @@ jobs:
             --cpu=1 \
             --min-instances=1 \
             --max-instances=2 \
-            --env-vars=ENV=prod,DEBUG=false \
+            --env-vars=ENV=prod,DEBUG=false,NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }},NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
             --port=8080
