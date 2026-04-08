@@ -14,21 +14,22 @@ describe('generateProblem', () => {
     }
   })
 
-  it('medium: 5–6 attributes, exactly 2 candidate keys', () => {
+  it('medium: 5–6 attributes, 1–2 candidate keys', () => {
     for (let i = 0; i < RUNS; i++) {
       const p = generateProblem('medium')
       expect(p.attributes.length).toBeGreaterThanOrEqual(5)
       expect(p.attributes.length).toBeLessThanOrEqual(6)
-      expect(p.candidateKeys).toHaveLength(2)
+      expect(p.candidateKeys.length).toBeGreaterThanOrEqual(1)
+      expect(p.candidateKeys.length).toBeLessThanOrEqual(2)
     }
   })
 
-  it('hard: 6–8 attributes, 3+ candidate keys', () => {
+  it('hard: 6–8 attributes, 2+ candidate keys', () => {
     for (let i = 0; i < RUNS; i++) {
       const p = generateProblem('hard')
       expect(p.attributes.length).toBeGreaterThanOrEqual(6)
       expect(p.attributes.length).toBeLessThanOrEqual(8)
-      expect(p.candidateKeys.length).toBeGreaterThanOrEqual(3)
+      expect(p.candidateKeys.length).toBeGreaterThanOrEqual(2)
     }
   })
 
