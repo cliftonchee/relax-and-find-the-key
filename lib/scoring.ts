@@ -2,7 +2,13 @@ import { Difficulty } from './generate'
 
 export type { Difficulty }
 
-export const TIME_PER_QUESTION = 60
+const TIME_PER_QUESTION: Record<Difficulty, number> = {
+  easy: 60,
+  medium: 90,
+  hard: 120,
+}
+
+export { TIME_PER_QUESTION }
 
 const MULTIPLIERS: Record<Difficulty, number> = {
   easy: 1,

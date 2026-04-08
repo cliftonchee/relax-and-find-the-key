@@ -23,7 +23,7 @@ describe('calculateQuestionScore', () => {
   })
 
   it('max score per question is TIME_PER_QUESTION × multiplier', () => {
-    expect(calculateQuestionScore(TIME_PER_QUESTION, 'hard')).toBe(TIME_PER_QUESTION * 3)
+    expect(calculateQuestionScore(TIME_PER_QUESTION['hard'], 'hard')).toBe(TIME_PER_QUESTION['hard'] * 3)
   })
 })
 
