@@ -5,9 +5,11 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
 import { generateQuestions, Problem, Difficulty } from '@/lib/generate'
 import { calculateQuestionScore, isCorrectAnswer, TIME_PER_QUESTION } from '@/lib/scoring'
+import { traceClosureSteps, ClosureTrace } from '@/lib/solver'
 import { TimerRing } from '@/components/TimerRing'
 import { AttributeChip } from '@/components/AttributeChip'
 import { FDDisplay } from '@/components/FDDisplay'
+import { FDChainVisualizer } from '@/components/FDChainVisualizer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -27,6 +29,7 @@ interface GameState {
   phase: Phase
   lastCorrect: boolean
   pointsEarned: number
+  closureTrace: ClosureTrace | null
 }
 
 type Action =
@@ -50,6 +53,7 @@ function initialState(difficulty: Difficulty): GameState {
     phase: 'loading',
     lastCorrect: false,
     pointsEarned: 0,
+    closureTrace: null,
   }
 }
 
@@ -85,6 +89,7 @@ function reducer(state: GameState, action: Action): GameState {
       if (allKeys.length === 0) return state
       const correct = isCorrectAnswer(allKeys, question.candidateKeys)
       const points = correct ? calculateQuestionScore(state.timeRemaining, state.difficulty) : 0
+      const closureTrace = traceClosureSteps(question.candidateKeys[0], question.fds)
       return {
         ...state,
         score: state.score + points,
@@ -93,6 +98,7 @@ function reducer(state: GameState, action: Action): GameState {
         phase: 'feedback',
         lastCorrect: correct,
         pointsEarned: points,
+        closureTrace,
       }
     }
 
@@ -101,12 +107,14 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'TIMEOUT': {
       const question = state.questions[state.currentIndex]
+      const closureTrace = traceClosureSteps(question.candidateKeys[0], question.fds)
       return {
         ...state,
         phase: 'feedback',
         lastCorrect: false,
         pointsEarned: 0,
         submittedKeys: question.candidateKeys, // show correct answer
+        closureTrace,
       }
     }
 
@@ -121,6 +129,7 @@ function reducer(state: GameState, action: Action): GameState {
         submittedKeys: [],
         timeRemaining: TIME_PER_QUESTION[state.difficulty],
         phase: 'playing',
+        closureTrace: null,
       }
     }
 
@@ -150,12 +159,14 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
     return () => clearTimeout(id)
   }, [state.phase, state.timeRemaining])
 
-  // Auto-advance after feedback
+  // Auto-advance after feedback — give enough time for the FD chain animation
   useEffect(() => {
     if (state.phase !== 'feedback') return
-    const id = setTimeout(() => dispatch({ type: 'NEXT_QUESTION' }), 2000)
+    const steps = state.closureTrace?.steps.length ?? 0
+    const delay = Math.max(3000, steps * 650 + 1800)
+    const id = setTimeout(() => dispatch({ type: 'NEXT_QUESTION' }), delay)
     return () => clearTimeout(id)
-  }, [state.phase])
+  }, [state.phase, state.closureTrace])
 
   // Redirect when finished
   useEffect(() => {
@@ -261,21 +272,29 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
 
       {/* Feedback banner */}
       {isFeedback && (
-        <div
-          className={cn(
-            'w-full rounded-lg p-4 text-center space-y-1 transition-all',
-            state.lastCorrect
-              ? 'bg-green-500/20 border border-green-500/40'
-              : 'bg-red-500/20 border border-red-500/40'
+        <div className="w-full space-y-2">
+          <div
+            className={cn(
+              'w-full rounded-lg p-4 text-center space-y-1 transition-all',
+              state.lastCorrect
+                ? 'bg-green-500/20 border border-green-500/40'
+                : 'bg-red-500/20 border border-red-500/40'
+            )}
+          >
+            <p className="text-lg font-bold">
+              {state.lastCorrect ? `+${state.pointsEarned} points!` : 'Wrong answer'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Correct keys:{' '}
+              {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
+            </p>
+          </div>
+          {state.closureTrace && (
+            <FDChainVisualizer
+              trace={state.closureTrace}
+              allAttributes={question.attributes}
+            />
           )}
-        >
-          <p className="text-lg font-bold">
-            {state.lastCorrect ? `+${state.pointsEarned} points!` : 'Wrong answer'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Correct keys:{' '}
-            {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
-          </p>
         </div>
       )}
     </main>
