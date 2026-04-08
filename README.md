@@ -146,7 +146,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 npm test
 ```
 
-Expected output: **29 tests passing** across 3 suites (solver, generator, scoring).
+Expected output: **30 tests passing** across 3 suites (solver, generator, scoring).
 
 ## Deployment
 
