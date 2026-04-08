@@ -46,7 +46,7 @@ function initialState(difficulty: Difficulty): GameState {
     score: 0,
     selectedAttrs: [],
     submittedKeys: [],
-    timeRemaining: TIME_PER_QUESTION,
+    timeRemaining: TIME_PER_QUESTION[difficulty],
     phase: 'loading',
     lastCorrect: false,
     pointsEarned: 0,
@@ -119,7 +119,7 @@ function reducer(state: GameState, action: Action): GameState {
         currentIndex: state.currentIndex + 1,
         selectedAttrs: [],
         submittedKeys: [],
-        timeRemaining: TIME_PER_QUESTION,
+        timeRemaining: TIME_PER_QUESTION[state.difficulty],
         phase: 'playing',
       }
     }
@@ -192,7 +192,7 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
 
       {/* Timer + Schema */}
       <div className="w-full flex items-start gap-6">
-        <TimerRing timeRemaining={state.timeRemaining} total={TIME_PER_QUESTION} />
+        <TimerRing timeRemaining={state.timeRemaining} total={TIME_PER_QUESTION[state.difficulty]} />
         <Card className="flex-1">
           <CardHeader className="pb-2">
             <CardTitle className="font-mono text-xl">

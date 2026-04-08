@@ -1,27 +1,28 @@
 import Link from 'next/link'
+import { TIME_PER_QUESTION } from '@/lib/scoring'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 
 const difficulties = [
   {
-    level: 'easy',
+    level: 'easy' as const,
     label: 'Easy',
-    description: '3–4 attributes, 1 candidate key',
+    description: '3–4 attributes, 2-3 FDs, 1 candidate key (singleton), 1-2 chain depth',
     multiplier: '×1',
     color: 'bg-green-500/10 border-green-500/30 hover:bg-green-500/20',
   },
   {
-    level: 'medium',
+    level: 'medium' as const,
     label: 'Medium',
-    description: '5–6 attributes, 2 candidate keys',
+    description: '5–6 attributes, 3-5 FDs, up to 2 candidate keys (may be composite), 2-3 chain depth, up to 1 redundant FD, up to 2 equivalent attributes',
     multiplier: '×2',
     color: 'bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/20',
   },
   {
-    level: 'hard',
+    level: 'hard' as const,
     label: 'Hard',
-    description: '6–8 attributes, 3+ candidate keys',
+    description: '6–8 attributes, 5-8 FDs, 2+ candidate keys, 3+ chain depth, 1+ redundant FDs, 2+ equivalent attributes',
     multiplier: '×3',
     color: 'bg-red-500/10 border-red-500/30 hover:bg-red-500/20',
   },
@@ -40,7 +41,7 @@ export default function HomePage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
         {difficulties.map(({ level, label, description, multiplier, color }) => (
           <Link key={level} href={`/game?difficulty=${level}`}>
-            <Card className={`cursor-pointer border transition-colors ${color}`}>
+            <Card className={`h-full flex flex-col cursor-pointer border transition-colors ${color}`}>
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center justify-between">
                   {label}
@@ -48,8 +49,8 @@ export default function HomePage() {
                 </CardTitle>
                 <CardDescription>{description}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">10 questions · 60s each</p>
+              <CardContent className="mt-auto">
+                <p className="text-sm text-muted-foreground">10 questions · {TIME_PER_QUESTION[level]}s each</p>
               </CardContent>
             </Card>
           </Link>
