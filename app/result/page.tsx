@@ -1,10 +1,12 @@
 'use client'
 
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import type { QuestionResult } from '@/app/game/page'
 
 function ResultContent() {
   const searchParams = useSearchParams()
@@ -16,6 +18,16 @@ function ResultContent() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [history, setHistory] = useState<QuestionResult[]>([])
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('quiz-history')
+      if (raw) setHistory(JSON.parse(raw))
+    } catch {
+      // ignore parse errors
+    }
+  }, [])
 
   async function handleSave() {
     if (!username.trim()) return
@@ -37,7 +49,7 @@ function ResultContent() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6 gap-8">
+    <main className="min-h-screen flex flex-col items-center p-6 gap-8 max-w-2xl mx-auto pt-16">
       <div className="text-center space-y-2">
         <p className="text-muted-foreground uppercase tracking-widest text-sm">Game Over</p>
         <h1 className="text-7xl font-extrabold tabular-nums">{score}</h1>
@@ -74,6 +86,63 @@ function ResultContent() {
           )}
         </CardContent>
       </Card>
+
+      {/* Question-by-question summary */}
+      {history.length > 0 && (
+        <Card className="w-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Question Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {history.map((result, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'flex items-start gap-3 rounded-md px-3 py-2 text-sm',
+                  result.correct ? 'bg-green-500/10' : 'bg-red-500/10'
+                )}
+              >
+                {/* Icon + number */}
+                <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                  <span className={result.correct ? 'text-green-400' : 'text-red-400'}>
+                    {result.correct ? '✓' : '✗'}
+                  </span>
+                  <span className="text-muted-foreground text-xs w-4">Q{i + 1}</span>
+                </div>
+
+                {/* Schema + answer info */}
+                <div className="flex-1 min-w-0 space-y-0.5">
+                  <p className="font-mono text-xs text-muted-foreground">
+                    R({result.attributes.join(', ')})
+                  </p>
+                  <p className="font-mono text-xs">
+                    <span className="text-muted-foreground">Answer: </span>
+                    {result.candidateKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
+                  </p>
+                  {!result.correct && result.submittedKeys.length > 0 && (
+                    <p className="font-mono text-xs text-red-400/80">
+                      <span className="text-muted-foreground">You said: </span>
+                      {result.submittedKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
+                    </p>
+                  )}
+                  {!result.correct && result.submittedKeys.length === 0 && (
+                    <p className="text-xs text-muted-foreground italic">Timed out</p>
+                  )}
+                </div>
+
+                {/* Points */}
+                <div className="shrink-0 text-xs font-semibold tabular-nums pt-0.5">
+                  {result.correct ? (
+                    <span className="text-green-400">+{result.pointsEarned}</span>
+                  ) : (
+                    <span className="text-muted-foreground">+0</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex gap-3">
         <Button variant="outline" onClick={() => router.push(`/game?difficulty=${difficulty}`)}>

@@ -18,6 +18,14 @@ import { cn } from '@/lib/utils'
 
 type Phase = 'loading' | 'playing' | 'feedback' | 'finished'
 
+export interface QuestionResult {
+  attributes: string[]
+  candidateKeys: string[][]
+  submittedKeys: string[][]
+  correct: boolean
+  pointsEarned: number
+}
+
 interface GameState {
   difficulty: Difficulty
   questions: Problem[]
@@ -30,6 +38,7 @@ interface GameState {
   lastCorrect: boolean
   pointsEarned: number
   closureTraces: ClosureTrace[]
+  history: QuestionResult[]
 }
 
 type Action =
@@ -54,6 +63,7 @@ function initialState(difficulty: Difficulty): GameState {
     lastCorrect: false,
     pointsEarned: 0,
     closureTraces: [],
+    history: [],
   }
 }
 
@@ -90,6 +100,13 @@ function reducer(state: GameState, action: Action): GameState {
       const correct = isCorrectAnswer(allKeys, question.candidateKeys)
       const points = correct ? calculateQuestionScore(state.timeRemaining, state.difficulty) : 0
       const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
+      const result: QuestionResult = {
+        attributes: question.attributes,
+        candidateKeys: question.candidateKeys,
+        submittedKeys: allKeys,
+        correct,
+        pointsEarned: points,
+      }
       return {
         ...state,
         score: state.score + points,
@@ -99,6 +116,7 @@ function reducer(state: GameState, action: Action): GameState {
         lastCorrect: correct,
         pointsEarned: points,
         closureTraces,
+        history: [...state.history, result],
       }
     }
 
@@ -108,6 +126,13 @@ function reducer(state: GameState, action: Action): GameState {
     case 'TIMEOUT': {
       const question = state.questions[state.currentIndex]
       const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
+      const result: QuestionResult = {
+        attributes: question.attributes,
+        candidateKeys: question.candidateKeys,
+        submittedKeys: [],
+        correct: false,
+        pointsEarned: 0,
+      }
       return {
         ...state,
         phase: 'feedback',
@@ -115,6 +140,7 @@ function reducer(state: GameState, action: Action): GameState {
         pointsEarned: 0,
         submittedKeys: question.candidateKeys, // show correct answer
         closureTraces,
+        history: [...state.history, result],
       }
     }
 
@@ -159,12 +185,13 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
     return () => clearTimeout(id)
   }, [state.phase, state.timeRemaining])
 
-// Redirect when finished
+  // Redirect when finished — persist history for the result page summary
   useEffect(() => {
     if (state.phase === 'finished') {
+      sessionStorage.setItem('quiz-history', JSON.stringify(state.history))
       router.push(`/result?score=${state.score}&difficulty=${difficulty}`)
     }
-  }, [state.phase, state.score, difficulty, router])
+  }, [state.phase, state.score, difficulty, router, state.history])
 
   if (state.phase === 'loading') {
     return (
