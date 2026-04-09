@@ -159,16 +159,7 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
     return () => clearTimeout(id)
   }, [state.phase, state.timeRemaining])
 
-  // Auto-advance after feedback — give enough time for the longest FD chain animation
-  useEffect(() => {
-    if (state.phase !== 'feedback') return
-    const maxSteps = Math.max(0, ...state.closureTraces.map(t => t.steps.length))
-    const delay = Math.max(3000, maxSteps * 650 + 1800)
-    const id = setTimeout(() => dispatch({ type: 'NEXT_QUESTION' }), delay)
-    return () => clearTimeout(id)
-  }, [state.phase, state.closureTraces])
-
-  // Redirect when finished
+// Redirect when finished
   useEffect(() => {
     if (state.phase === 'finished') {
       router.push(`/result?score=${state.score}&difficulty=${difficulty}`)
@@ -295,6 +286,12 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
               allAttributes={question.attributes}
             />
           )}
+          <Button
+            className="w-full"
+            onClick={() => dispatch({ type: 'NEXT_QUESTION' })}
+          >
+            {state.currentIndex >= state.questions.length - 1 ? 'See Results' : 'Next Question →'}
+          </Button>
         </div>
       )}
     </main>
