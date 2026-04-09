@@ -20,6 +20,7 @@ type Phase = 'loading' | 'playing' | 'feedback' | 'finished'
 
 export interface QuestionResult {
   attributes: string[]
+  fds: { lhs: string[]; rhs: string[] }[]
   candidateKeys: string[][]
   submittedKeys: string[][]
   correct: boolean
@@ -102,6 +103,7 @@ function reducer(state: GameState, action: Action): GameState {
       const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
       const result: QuestionResult = {
         attributes: question.attributes,
+        fds: question.fds,
         candidateKeys: question.candidateKeys,
         submittedKeys: allKeys,
         correct,
@@ -128,6 +130,7 @@ function reducer(state: GameState, action: Action): GameState {
       const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
       const result: QuestionResult = {
         attributes: question.attributes,
+        fds: question.fds,
         candidateKeys: question.candidateKeys,
         submittedKeys: [],
         correct: false,

@@ -95,48 +95,92 @@ function ResultContent() {
           </CardHeader>
           <CardContent className="space-y-2">
             {history.map((result, i) => (
-              <div
-                key={i}
-                className={cn(
-                  'flex items-start gap-3 rounded-md px-3 py-2 text-sm',
-                  result.correct ? 'bg-green-500/10' : 'bg-red-500/10'
-                )}
-              >
-                {/* Icon + number */}
-                <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
-                  <span className={result.correct ? 'text-green-400' : 'text-red-400'}>
-                    {result.correct ? '✓' : '✗'}
-                  </span>
-                  <span className="text-muted-foreground text-xs w-4">Q{i + 1}</span>
-                </div>
+              <div key={i} className="relative group">
+                {/* Summary row */}
+                <div
+                  className={cn(
+                    'flex items-start gap-3 rounded-md px-3 py-2 text-sm cursor-default',
+                    result.correct ? 'bg-green-500/10' : 'bg-red-500/10'
+                  )}
+                >
+                  {/* Icon + number */}
+                  <div className="flex items-center gap-1.5 shrink-0 pt-0.5">
+                    <span className={result.correct ? 'text-green-400' : 'text-red-400'}>
+                      {result.correct ? '✓' : '✗'}
+                    </span>
+                    <span className="text-muted-foreground text-xs w-4">Q{i + 1}</span>
+                  </div>
 
-                {/* Schema + answer info */}
-                <div className="flex-1 min-w-0 space-y-0.5">
-                  <p className="font-mono text-xs text-muted-foreground">
-                    R({result.attributes.join(', ')})
-                  </p>
-                  <p className="font-mono text-xs">
-                    <span className="text-muted-foreground">Answer: </span>
-                    {result.candidateKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
-                  </p>
-                  {!result.correct && result.submittedKeys.length > 0 && (
-                    <p className="font-mono text-xs text-red-400/80">
-                      <span className="text-muted-foreground">You said: </span>
-                      {result.submittedKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
+                  {/* Schema + answer info */}
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className="font-mono text-xs text-muted-foreground">
+                      R({result.attributes.join(', ')})
                     </p>
-                  )}
-                  {!result.correct && result.submittedKeys.length === 0 && (
-                    <p className="text-xs text-muted-foreground italic">Timed out</p>
-                  )}
+                    <p className="font-mono text-xs">
+                      <span className="text-muted-foreground">Answer: </span>
+                      {result.candidateKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
+                    </p>
+                    {!result.correct && result.submittedKeys.length > 0 && (
+                      <p className="font-mono text-xs text-red-400/80">
+                        <span className="text-muted-foreground">You said: </span>
+                        {result.submittedKeys.map(k => '{' + k.join(', ') + '}').join(', ')}
+                      </p>
+                    )}
+                    {!result.correct && result.submittedKeys.length === 0 && (
+                      <p className="text-xs text-muted-foreground italic">Timed out</p>
+                    )}
+                  </div>
+
+                  {/* Points + hover hint */}
+                  <div className="shrink-0 text-xs font-semibold tabular-nums pt-0.5 flex flex-col items-end gap-1">
+                    {result.correct ? (
+                      <span className="text-green-400">+{result.pointsEarned}</span>
+                    ) : (
+                      <span className="text-muted-foreground">+0</span>
+                    )}
+                    <span className="text-muted-foreground/50 text-[10px] font-normal group-hover:text-muted-foreground transition-colors">
+                      hover
+                    </span>
+                  </div>
                 </div>
 
-                {/* Points */}
-                <div className="shrink-0 text-xs font-semibold tabular-nums pt-0.5">
-                  {result.correct ? (
-                    <span className="text-green-400">+{result.pointsEarned}</span>
-                  ) : (
-                    <span className="text-muted-foreground">+0</span>
-                  )}
+                {/* Hover popover — full question detail */}
+                <div className="pointer-events-none invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 bottom-full mb-1.5 z-20">
+                  <div className="rounded-lg border border-border bg-card shadow-lg p-3 space-y-2 text-xs font-mono">
+                    {/* Schema */}
+                    <p className="font-semibold text-sm">
+                      R({result.attributes.join(', ')})
+                    </p>
+
+                    {/* FDs */}
+                    <div className="space-y-0.5">
+                      <p className="text-muted-foreground uppercase tracking-wide text-[10px] font-sans">
+                        Functional Dependencies
+                      </p>
+                      {result.fds.map((fd, j) => (
+                        <p key={j}>
+                          <span className="text-primary font-semibold">{fd.lhs.join(', ')}</span>
+                          <span className="text-muted-foreground mx-1.5">→</span>
+                          <span>{fd.rhs.join(', ')}</span>
+                        </p>
+                      ))}
+                    </div>
+
+                    {/* Divider + answer */}
+                    <div className="border-t border-border pt-2 space-y-0.5">
+                      <p className="text-muted-foreground uppercase tracking-wide text-[10px] font-sans">
+                        Candidate Keys
+                      </p>
+                      <p className="text-emerald-400 font-semibold">
+                        {result.candidateKeys.map(k => '{' + k.join(', ') + '}').join('  ·  ')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Caret pointing down into the row */}
+                  <div className="flex justify-center">
+                    <div className="w-2 h-2 bg-card border-r border-b border-border rotate-45 -mt-1.5" />
+                  </div>
                 </div>
               </div>
             ))}
