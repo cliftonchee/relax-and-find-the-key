@@ -3,15 +3,17 @@
 import { useEffect, useState } from 'react'
 import { ClosureTrace } from '@/lib/solver'
 import { cn } from '@/lib/utils'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 interface Props {
-  trace: ClosureTrace
+  traces: ClosureTrace[]
   allAttributes: string[]
 }
 
-export function FDChainVisualizer({ trace, allAttributes }: Props) {
+function TracePanel({ trace, allAttributes }: { trace: ClosureTrace; allAttributes: string[] }) {
   const [visibleSteps, setVisibleSteps] = useState(0)
 
+  // Reset and replay animation every time this panel is (re-)mounted or the trace changes
   useEffect(() => {
     setVisibleSteps(0)
     if (trace.steps.length === 0) return
@@ -35,14 +37,7 @@ export function FDChainVisualizer({ trace, allAttributes }: Props) {
   const coversAll = trace.finalClosure.length === allAttributes.length
 
   return (
-    <div className="w-full rounded-lg border border-border bg-card/40 p-4 space-y-3 mt-1">
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-        FD Chain Proof &mdash; Key{' '}
-        <span className="text-primary font-mono">
-          {'{' + trace.startAttrs.join(', ') + '}'}
-        </span>
-      </p>
-
+    <div className="space-y-3">
       {/* Starting set */}
       <div className="flex items-center gap-2 text-sm font-mono">
         <span className="text-muted-foreground text-xs">Start:</span>
@@ -108,6 +103,49 @@ export function FDChainVisualizer({ trace, allAttributes }: Props) {
             </>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+export function FDChainVisualizer({ traces, allAttributes }: Props) {
+  if (traces.length === 0) return null
+
+  const isSingleKey = traces.length === 1
+
+  return (
+    <div className="w-full rounded-lg border border-border bg-card/40 p-4 space-y-3 mt-1">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+        FD Chain Proof
+        {isSingleKey && (
+          <>
+            {' '}
+            &mdash; Key{' '}
+            <span className="text-primary font-mono">
+              {'{' + traces[0].startAttrs.join(', ') + '}'}
+            </span>
+          </>
+        )}
+      </p>
+
+      {isSingleKey ? (
+        <TracePanel trace={traces[0]} allAttributes={allAttributes} />
+      ) : (
+        // Use Radix Tabs — unmountOnHide ensures each panel re-mounts (replaying animation) on switch
+        <Tabs defaultValue="0">
+          <TabsList className="mb-2">
+            {traces.map((trace, i) => (
+              <TabsTrigger key={i} value={String(i)} className="font-mono text-xs">
+                {'{' + trace.startAttrs.join(', ') + '}'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          {traces.map((trace, i) => (
+            <TabsContent key={i} value={String(i)} unmountOnHide>
+              <TracePanel trace={trace} allAttributes={allAttributes} />
+            </TabsContent>
+          ))}
+        </Tabs>
       )}
     </div>
   )

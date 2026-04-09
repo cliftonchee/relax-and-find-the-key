@@ -29,7 +29,7 @@ interface GameState {
   phase: Phase
   lastCorrect: boolean
   pointsEarned: number
-  closureTrace: ClosureTrace | null
+  closureTraces: ClosureTrace[]
 }
 
 type Action =
@@ -53,7 +53,7 @@ function initialState(difficulty: Difficulty): GameState {
     phase: 'loading',
     lastCorrect: false,
     pointsEarned: 0,
-    closureTrace: null,
+    closureTraces: [],
   }
 }
 
@@ -89,7 +89,7 @@ function reducer(state: GameState, action: Action): GameState {
       if (allKeys.length === 0) return state
       const correct = isCorrectAnswer(allKeys, question.candidateKeys)
       const points = correct ? calculateQuestionScore(state.timeRemaining, state.difficulty) : 0
-      const closureTrace = traceClosureSteps(question.candidateKeys[0], question.fds)
+      const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
       return {
         ...state,
         score: state.score + points,
@@ -98,7 +98,7 @@ function reducer(state: GameState, action: Action): GameState {
         phase: 'feedback',
         lastCorrect: correct,
         pointsEarned: points,
-        closureTrace,
+        closureTraces,
       }
     }
 
@@ -107,14 +107,14 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'TIMEOUT': {
       const question = state.questions[state.currentIndex]
-      const closureTrace = traceClosureSteps(question.candidateKeys[0], question.fds)
+      const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
       return {
         ...state,
         phase: 'feedback',
         lastCorrect: false,
         pointsEarned: 0,
         submittedKeys: question.candidateKeys, // show correct answer
-        closureTrace,
+        closureTraces,
       }
     }
 
@@ -129,7 +129,7 @@ function reducer(state: GameState, action: Action): GameState {
         submittedKeys: [],
         timeRemaining: TIME_PER_QUESTION[state.difficulty],
         phase: 'playing',
-        closureTrace: null,
+        closureTraces: [],
       }
     }
 
@@ -159,14 +159,14 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
     return () => clearTimeout(id)
   }, [state.phase, state.timeRemaining])
 
-  // Auto-advance after feedback — give enough time for the FD chain animation
+  // Auto-advance after feedback — give enough time for the longest FD chain animation
   useEffect(() => {
     if (state.phase !== 'feedback') return
-    const steps = state.closureTrace?.steps.length ?? 0
-    const delay = Math.max(3000, steps * 650 + 1800)
+    const maxSteps = Math.max(0, ...state.closureTraces.map(t => t.steps.length))
+    const delay = Math.max(3000, maxSteps * 650 + 1800)
     const id = setTimeout(() => dispatch({ type: 'NEXT_QUESTION' }), delay)
     return () => clearTimeout(id)
-  }, [state.phase, state.closureTrace])
+  }, [state.phase, state.closureTraces])
 
   // Redirect when finished
   useEffect(() => {
@@ -289,9 +289,9 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
               {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
             </p>
           </div>
-          {state.closureTrace && (
+          {state.closureTraces.length > 0 && (
             <FDChainVisualizer
-              trace={state.closureTrace}
+              traces={state.closureTraces}
               allAttributes={question.attributes}
             />
           )}
