@@ -5,9 +5,11 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
 import { generateQuestions, Problem, Difficulty } from '@/lib/generate'
 import { calculateQuestionScore, isCorrectAnswer, TIME_PER_QUESTION } from '@/lib/scoring'
+import { traceClosureSteps, ClosureTrace } from '@/lib/solver'
 import { TimerRing } from '@/components/TimerRing'
 import { AttributeChip } from '@/components/AttributeChip'
 import { FDDisplay } from '@/components/FDDisplay'
+import { FDChainVisualizer } from '@/components/FDChainVisualizer'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +17,15 @@ import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
 type Phase = 'loading' | 'playing' | 'feedback' | 'finished'
+
+export interface QuestionResult {
+  attributes: string[]
+  fds: { lhs: string[]; rhs: string[] }[]
+  candidateKeys: string[][]
+  submittedKeys: string[][]
+  correct: boolean
+  pointsEarned: number
+}
 
 interface GameState {
   difficulty: Difficulty
@@ -27,6 +38,8 @@ interface GameState {
   phase: Phase
   lastCorrect: boolean
   pointsEarned: number
+  closureTraces: ClosureTrace[]
+  history: QuestionResult[]
 }
 
 type Action =
@@ -50,6 +63,8 @@ function initialState(difficulty: Difficulty): GameState {
     phase: 'loading',
     lastCorrect: false,
     pointsEarned: 0,
+    closureTraces: [],
+    history: [],
   }
 }
 
@@ -85,6 +100,15 @@ function reducer(state: GameState, action: Action): GameState {
       if (allKeys.length === 0) return state
       const correct = isCorrectAnswer(allKeys, question.candidateKeys)
       const points = correct ? calculateQuestionScore(state.timeRemaining, state.difficulty) : 0
+      const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
+      const result: QuestionResult = {
+        attributes: question.attributes,
+        fds: question.fds,
+        candidateKeys: question.candidateKeys,
+        submittedKeys: allKeys,
+        correct,
+        pointsEarned: points,
+      }
       return {
         ...state,
         score: state.score + points,
@@ -93,6 +117,8 @@ function reducer(state: GameState, action: Action): GameState {
         phase: 'feedback',
         lastCorrect: correct,
         pointsEarned: points,
+        closureTraces,
+        history: [...state.history, result],
       }
     }
 
@@ -101,12 +127,23 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'TIMEOUT': {
       const question = state.questions[state.currentIndex]
+      const closureTraces = question.candidateKeys.map(key => traceClosureSteps(key, question.fds))
+      const result: QuestionResult = {
+        attributes: question.attributes,
+        fds: question.fds,
+        candidateKeys: question.candidateKeys,
+        submittedKeys: [],
+        correct: false,
+        pointsEarned: 0,
+      }
       return {
         ...state,
         phase: 'feedback',
         lastCorrect: false,
         pointsEarned: 0,
         submittedKeys: question.candidateKeys, // show correct answer
+        closureTraces,
+        history: [...state.history, result],
       }
     }
 
@@ -121,6 +158,7 @@ function reducer(state: GameState, action: Action): GameState {
         submittedKeys: [],
         timeRemaining: TIME_PER_QUESTION[state.difficulty],
         phase: 'playing',
+        closureTraces: [],
       }
     }
 
@@ -150,19 +188,13 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
     return () => clearTimeout(id)
   }, [state.phase, state.timeRemaining])
 
-  // Auto-advance after feedback
-  useEffect(() => {
-    if (state.phase !== 'feedback') return
-    const id = setTimeout(() => dispatch({ type: 'NEXT_QUESTION' }), 2000)
-    return () => clearTimeout(id)
-  }, [state.phase])
-
-  // Redirect when finished
+  // Redirect when finished — persist history for the result page summary
   useEffect(() => {
     if (state.phase === 'finished') {
+      sessionStorage.setItem('quiz-history', JSON.stringify(state.history))
       router.push(`/result?score=${state.score}&difficulty=${difficulty}`)
     }
-  }, [state.phase, state.score, difficulty, router])
+  }, [state.phase, state.score, difficulty, router, state.history])
 
   if (state.phase === 'loading') {
     return (
@@ -261,21 +293,35 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
 
       {/* Feedback banner */}
       {isFeedback && (
-        <div
-          className={cn(
-            'w-full rounded-lg p-4 text-center space-y-1 transition-all',
-            state.lastCorrect
-              ? 'bg-green-500/20 border border-green-500/40'
-              : 'bg-red-500/20 border border-red-500/40'
+        <div className="w-full space-y-2">
+          <div
+            className={cn(
+              'w-full rounded-lg p-4 text-center space-y-1 transition-all',
+              state.lastCorrect
+                ? 'bg-green-500/20 border border-green-500/40'
+                : 'bg-red-500/20 border border-red-500/40'
+            )}
+          >
+            <p className="text-lg font-bold">
+              {state.lastCorrect ? `+${state.pointsEarned} points!` : 'Wrong answer'}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Correct keys:{' '}
+              {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
+            </p>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => dispatch({ type: 'NEXT_QUESTION' })}
+          >
+            {state.currentIndex >= state.questions.length - 1 ? 'See Results' : 'Next Question →'}
+          </Button>
+          {state.closureTraces.length > 0 && (
+            <FDChainVisualizer
+              traces={state.closureTraces}
+              allAttributes={question.attributes}
+            />
           )}
-        >
-          <p className="text-lg font-bold">
-            {state.lastCorrect ? `+${state.pointsEarned} points!` : 'Wrong answer'}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Correct keys:{' '}
-            {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
-          </p>
         </div>
       )}
     </main>
