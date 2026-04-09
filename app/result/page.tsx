@@ -146,7 +146,7 @@ function ResultContent() {
 
                 {/* Hover popover — full question detail */}
                 <div className="pointer-events-none invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-opacity duration-150 absolute left-0 right-0 bottom-full mb-1.5 z-20">
-                  <div className="rounded-lg border border-border bg-card shadow-lg p-3 space-y-2 text-xs font-mono">
+                  <div className="rounded-lg border border-primary/40 bg-muted shadow-xl shadow-black/60 p-3 space-y-2 text-xs font-mono">
                     {/* Schema */}
                     <p className="font-semibold text-sm">
                       R({result.attributes.join(', ')})
@@ -179,7 +179,7 @@ function ResultContent() {
 
                   {/* Caret pointing down into the row */}
                   <div className="flex justify-center">
-                    <div className="w-2 h-2 bg-card border-r border-b border-border rotate-45 -mt-1.5" />
+                    <div className="w-2 h-2 bg-muted border-r border-b border-primary/40 rotate-45 -mt-1.5" />
                   </div>
                 </div>
               </div>
