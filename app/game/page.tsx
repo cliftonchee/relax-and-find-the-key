@@ -280,18 +280,18 @@ function GameContent({ difficulty }: { difficulty: Difficulty }) {
               {question.candidateKeys.map(k => '{' + k.join(', ') + '}').join(' and ')}
             </p>
           </div>
-          {state.closureTraces.length > 0 && (
-            <FDChainVisualizer
-              traces={state.closureTraces}
-              allAttributes={question.attributes}
-            />
-          )}
           <Button
             className="w-full"
             onClick={() => dispatch({ type: 'NEXT_QUESTION' })}
           >
             {state.currentIndex >= state.questions.length - 1 ? 'See Results' : 'Next Question →'}
           </Button>
+          {state.closureTraces.length > 0 && (
+            <FDChainVisualizer
+              traces={state.closureTraces}
+              allAttributes={question.attributes}
+            />
+          )}
         </div>
       )}
     </main>

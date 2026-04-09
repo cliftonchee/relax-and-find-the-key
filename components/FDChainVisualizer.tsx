@@ -141,7 +141,7 @@ export function FDChainVisualizer({ traces, allAttributes }: Props) {
             ))}
           </TabsList>
           {traces.map((trace, i) => (
-            <TabsContent key={i} value={String(i)} unmountOnHide>
+            <TabsContent key={i} value={String(i)}>
               <TracePanel trace={trace} allAttributes={allAttributes} />
             </TabsContent>
           ))}
