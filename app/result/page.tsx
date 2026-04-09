@@ -189,6 +189,9 @@ function ResultContent() {
       )}
 
       <div className="flex gap-3">
+        <Button variant="outline" onClick={() => router.push('/')}>
+          Home
+        </Button>
         <Button variant="outline" onClick={() => router.push(`/game?difficulty=${difficulty}`)}>
           Play Again
         </Button>
